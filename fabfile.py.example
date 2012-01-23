@@ -1,0 +1,5 @@
+# Import all tasks and targets
+from gaefab import *
+
+# Create a `fab test` command to test the 'app' and 'api' modules
+test = utils.make_test_command('app', 'api')
