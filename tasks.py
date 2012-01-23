@@ -70,6 +70,8 @@ Usage:
         # the source).
         local('git clone %s %s' % (clone_src, deploy_src), capture=False)
         with lcd(deploy_src):
+            if not deploy.pre_deploy_hook(tag, version):
+                abort('Pre deploy hook failed; aborting.')
             # Now we can update the submodules and clean up any git info
             local('git submodule update --init --recursive', capture=False)
             local('find . -name ".git*" | xargs rm -rf', capture=False)
@@ -79,6 +81,8 @@ Usage:
     # it. The app ID and version will be controlled by the remote target.
     else:
         deploy_src = '.'
+        if not deploy.pre_deploy_hook(tag, export):
+            abort('Pre deploy hook failed.')
 
     # Deploy the application using appcfg.py
     cmd = 'appcfg.py -A %s -V %s update %s' % (
@@ -89,6 +93,16 @@ Usage:
     if export is not None:
         assert deploy_src not in dangerous_dirs
         local('rm -r %s' % deploy_src, capture=False)
+
+    if not deploy.post_deploy_hook(tag, export):
+        abort('Post deploy hook failed!')
+
+# Pre- and post-deploy hooks that can be overridden in a fabfile to modify
+# deployment behavior (e.g. to copy in some data not stored in version
+# control). They have to be run at different times depending on whether we're
+# doing an "exported" deploy or not, so they can't be wrapped in a decorator.
+deploy.pre_deploy_hook = lambda tag, export: True
+deploy.post_deploy_hook = lambda tag, export: True
 
 
 @utils.target_required
